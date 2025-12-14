@@ -2,7 +2,7 @@ package com.example.lab3_github_communication.data.model
 
 data class SearchResponse(
     val total_count: Int,
-    val items: List<Repository>
+    val items: List<Repository>?  // Nullable pour gérer les erreurs API
 )
 
 data class Repository(

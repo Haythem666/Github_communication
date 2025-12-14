@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,16 +37,14 @@ import com.example.lab3_github_communication.data.api.RetrofitInstance
 import com.example.lab3_github_communication.data.model.Repository
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.time.LocalDate
 import java.util.Calendar
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        //Log.d("MainActivity", "App Started")
+        Log.d("MainActivity", "App Started - Force Update 3")
         setContent {
-            // Thème Material de base
             MaterialTheme {
                 GitHubTrendingScreen()
             }
@@ -54,23 +53,20 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun GitHubTrendingScreen() {
-        // États de l'interface
         var searchQuery by remember { mutableStateOf("") }
         var statusMessage by remember { mutableStateOf("Entrez un langage et cliquez sur le bouton.") }
         var repositories by remember { mutableStateOf<List<Repository>>(emptyList()) }
         var selectedRepo by remember { mutableStateOf<Repository?>(null) }
 
-        // Navigation simple : si un repo est sélectionné, on affiche les détails
         if (selectedRepo != null) {
             DetailsScreen(
                 repository = selectedRepo!!,
                 onBack = { selectedRepo = null }
             )
         } else {
-            // Écran principal de recherche
             Surface(
                 modifier = Modifier.fillMaxSize(),
-                color = Color.White // Fond blanc explicite
+                color = Color.White
             ) {
                 Column(
                     modifier = Modifier
@@ -98,7 +94,6 @@ class MainActivity : ComponentActivity() {
                     Button(
                         onClick = {
                             if (searchQuery.isNotEmpty()) {
-                                // Lancement de la recherche
                                 performSearch(searchQuery) { status, repos ->
                                     statusMessage = status
                                     repositories = repos
@@ -125,7 +120,8 @@ class MainActivity : ComponentActivity() {
                             .padding(top = 16.dp)
                     ) {
                         items(repositories) { repo ->
-                            RepoListItem(
+                            // Changement du nom du composable pour forcer la mise à jour
+                            RepositoryItem(
                                 repository = repo,
                                 onClick = { selectedRepo = repo }
                             )
@@ -138,11 +134,18 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun RepoListItem(repository: Repository, onClick: () -> Unit) {
+    fun RepositoryItem(repository: Repository, onClick: () -> Unit) {
+        // Suppression explicite de l'indication pour éviter tout crash de compatibilité
+        val interactionSource = remember { MutableInteractionSource() }
+        
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
                 .padding(12.dp)
         ) {
             Text(
@@ -246,11 +249,14 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             try {
+                val calendar = Calendar.getInstance()
+                calendar.add(Calendar.DAY_OF_YEAR, -30)
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                val oneMonthAgo = dateFormat.format(calendar.time)
 
-                val oneMonthAgo = LocalDate.now().minusDays(30)
-                
                 val q = "language:$language created:>$oneMonthAgo"
 
+                Log.d("MainActivity", "Recherche avec query: $q")
 
                 val response = RetrofitInstance.api.searchRepositories(
                     query = q,
@@ -258,13 +264,16 @@ class MainActivity : ComponentActivity() {
                     order = "desc"
                 )
 
-                val repos = response.items
+                val repos = response.items ?: emptyList()
+
+                Log.d("MainActivity", "Résultats reçus: ${repos.size} repos")
 
                 onResult("✅ Trouvé ${response.total_count} projets populaires !", repos)
 
             } catch (e: Exception) {
-                Log.e("MainActivity", "Erreur API", e)
-                onResult("❌ Erreur : ${e.localizedMessage}", emptyList())
+                Log.e("MainActivity", "Erreur API complète", e)
+                e.printStackTrace()
+                onResult("❌ Erreur : ${e.message ?: "Erreur inconnue"}", emptyList())
             }
         }
     }
