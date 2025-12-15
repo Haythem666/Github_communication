@@ -37,13 +37,13 @@ import com.example.lab3_github_communication.data.api.RetrofitInstance
 import com.example.lab3_github_communication.data.model.Repository
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.util.Calendar
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d("MainActivity", "App Started - Force Update 3")
         setContent {
             MaterialTheme {
                 GitHubTrendingScreen()
@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun GitHubTrendingScreen() {
         var searchQuery by remember { mutableStateOf("") }
-        var statusMessage by remember { mutableStateOf("Entrez un langage et cliquez sur le bouton.") }
+        var statusMessage by remember { mutableStateOf("Enter the language and click the button") }
         var repositories by remember { mutableStateOf<List<Repository>>(emptyList()) }
         var selectedRepo by remember { mutableStateOf<Repository?>(null) }
 
@@ -86,7 +86,7 @@ class MainActivity : ComponentActivity() {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        label = { Text("Langage (ex: kotlin, python)...") },
+                        label = { Text("Language (ex: kotlin, python)...") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -104,7 +104,7 @@ class MainActivity : ComponentActivity() {
                             .fillMaxWidth()
                             .padding(top = 8.dp)
                     ) {
-                        Text("Voir les plus populaires (30j)")
+                        Text("See the most popular (30j)")
                     }
 
                     Text(
@@ -120,7 +120,6 @@ class MainActivity : ComponentActivity() {
                             .padding(top = 16.dp)
                     ) {
                         items(repositories) { repo ->
-                            // Changement du nom du composable pour forcer la mise à jour
                             RepositoryItem(
                                 repository = repo,
                                 onClick = { selectedRepo = repo }
@@ -135,7 +134,6 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     fun RepositoryItem(repository: Repository, onClick: () -> Unit) {
-        // Suppression explicite de l'indication pour éviter tout crash de compatibilité
         val interactionSource = remember { MutableInteractionSource() }
         
         Column(
@@ -194,7 +192,7 @@ class MainActivity : ComponentActivity() {
                 )
 
                 Text(
-                    text = "par ${repository.owner.login}",
+                    text = "by ${repository.owner.login}",
                     fontSize = 16.sp,
                     color = Color.DarkGray,
                     modifier = Modifier.padding(bottom = 16.dp)
@@ -221,7 +219,7 @@ class MainActivity : ComponentActivity() {
                 )
 
                 Text(
-                    text = repository.description ?: "Pas de description",
+                    text = repository.description ?: "No description",
                     fontSize = 16.sp,
                     color = Color.Black,
                     modifier = Modifier.padding(top = 4.dp)
@@ -235,7 +233,7 @@ class MainActivity : ComponentActivity() {
                         .fillMaxWidth()
                         .padding(top = 32.dp)
                 ) {
-                    Text("Retour")
+                    Text("Back")
                 }
             }
         }
@@ -245,18 +243,15 @@ class MainActivity : ComponentActivity() {
         language: String,
         onResult: (String, List<Repository>) -> Unit
     ) {
-        onResult("Recherche en cours...", emptyList())
+        onResult("Research in progress...", emptyList())
 
         lifecycleScope.launch {
             try {
-                val calendar = Calendar.getInstance()
-                calendar.add(Calendar.DAY_OF_YEAR, -30)
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                val oneMonthAgo = dateFormat.format(calendar.time)
+
+                val oneMonthAgo = LocalDate.now().minusDays(30)
 
                 val q = "language:$language created:>$oneMonthAgo"
 
-                Log.d("MainActivity", "Recherche avec query: $q")
 
                 val response = RetrofitInstance.api.searchRepositories(
                     query = q,
@@ -264,16 +259,14 @@ class MainActivity : ComponentActivity() {
                     order = "desc"
                 )
 
-                val repos = response.items ?: emptyList()
+                val repos = response.items
 
-                Log.d("MainActivity", "Résultats reçus: ${repos.size} repos")
 
-                onResult("✅ Trouvé ${response.total_count} projets populaires !", repos)
+                onResult("✅ Found ${response.total_count} popular projects !", repos)
 
             } catch (e: Exception) {
-                Log.e("MainActivity", "Erreur API complète", e)
                 e.printStackTrace()
-                onResult("❌ Erreur : ${e.message ?: "Erreur inconnue"}", emptyList())
+                onResult("❌ Error : ${e.message ?: "Unknown Error"}", emptyList())
             }
         }
     }

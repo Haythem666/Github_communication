@@ -6,13 +6,13 @@ plugins {
 
 android {
     namespace = "com.example.lab3_github_communication"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         // Changement de l'ID pour forcer une réinstallation propre
         applicationId = "com.example.lab3_github_communication.v2"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
